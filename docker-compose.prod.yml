@@ -1,0 +1,69 @@
+services:
+
+  traefik:
+
+    command:
+
+      - "--api.dashboard=true"
+
+      - "--providers.docker=true"
+
+      - "--providers.docker.exposedbydefault=false"
+
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+
+      - "--certificatesresolvers.myresolver.acme.email=${EMAIL}"
+
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+
+      - "--log.level=INFO"
+
+      - "--accesslog=true"
+
+      - "--accesslog.filePath=/logs/access.log"
+
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./logs:/logs"
+      - "./letsencrypt:/letsencrypt"
+
+  chat:
+
+    labels:
+
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.chat.rule=Host(`${CHAT_DOMAIN}`)"
+
+      - "traefik.http.routers.chat.entrypoints=websecure"
+
+      - "traefik.http.routers.chat.tls.certresolver=myresolver"
+
+      - "traefik.http.services.chat.loadbalancer.server.port=3000"
+
+  uptime-kuma:
+
+    labels:
+
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.kuma.rule=Host(`${KUMA_DOMAIN}`)"
+
+      - "traefik.http.routers.kuma.entrypoints=websecure"
+
+      - "traefik.http.routers.kuma.tls.certresolver=myresolver"
+
+      - "traefik.http.services.kuma.loadbalancer.server.port=3001"

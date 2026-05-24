@@ -1,0 +1,9 @@
+logs/
+*.log
+letsencrypt/acme.json
+.git/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+node_modules/

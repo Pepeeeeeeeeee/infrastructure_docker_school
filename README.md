@@ -1,93 +1,300 @@
-# peter-duga
+# Infrastructure Project – Container Orchestration
 
-peter-duga
+|                         |                                                              |
+| ----------------------- | :----------------------------------------------------------- |
+| **Student**             | Peter Duga                                                   |
+| **Class Group**         | ACS201                                                       |
+| **Course**              | Infrastructure 3                                             |
+| **Academic Year**       | 2025–2026                                                    |
+| **Project**             | Container Orchestration                                      |
+| **Deployment Platform** | Google Cloud Platform                                        |
+| **Primary Domain**      | infra3proj.duckdns.org                                       |
+| **Monitoring Domain**   | infra3proj-kuma.duckdns.org                                  |
+| **Repository**          | https://gitlab.com/kdg-ti/infrastructure-3/2025-26/acs201/peter-duga |
 
-## Getting started
+## Table of Contents
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- [Requirements](#requirements)
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- [Project Overview](#project-overview)
+- [Architecture](#architecture)
+- [PlantUML – High Level Architecture](#plantuml--high-level-architecture)
+- [PlantUML – Request Flow](#plantuml--request-flow)
+- [Technology Choices](#technology-choices)
+- [Container Overview](#container-overview)
+- [Persistent Storage](#persistent-storage)
+- [Environment Variables](#environment-variables)
+- [Local Deployment](#local-deployment)
+- [Google Cloud Deployment](#google-cloud-deployment)
+- [TLS and Certificates](#tls-and-certificates)
+- [Monitoring](#monitoring)
+- [Verification](#verification)
+- [Conclusion](#conclusion)
 
-## Add your files
+## Requirements
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+Before deploying the project, ensure the following tools are available:
 
+| Component                   | Purpose                        |
+| --------------------------- | ------------------------------ |
+| Docker Engine               | Container runtime              |
+| Docker Compose              | Service orchestration          |
+| Google Cloud SDK (`gcloud`) | VM provisioning and management |
+| SSH                         | Remote administration          |
+| `dig`                       | DNS verification               |
+| Git                         | Source control and deployment  |
+| DuckDNS account             | Dynamic DNS                    |
+| Google Cloud account        | VM hosting                     |
+
+---
+
+# Project Overview
+
+This project implements a small real-time chat application deployed using Docker Compose. The solution focuses on infrastructure automation, container orchestration, HTTPS termination, monitoring, persistence, and cloud deployment rather than application complexity.
+
+The application consists of a Node.js chat service backed by PostgreSQL. Requests are routed through Traefik, which acts as a reverse proxy and automatically obtains TLS certificates from Let's Encrypt using ACME. Uptime Kuma is included as a monitoring solution and allows availability checks of the deployed services.
+
+The project can be executed locally using Docker Compose and can also be deployed to a Google Cloud virtual machine using the provided automation scripts.
+
+---
+
+# Architecture
+
+The architecture consists of four primary services. Traefik is the public entry point and routes incoming requests based on the requested hostname. The chat application stores all messages in PostgreSQL, while Uptime Kuma provides service monitoring.
+
+## PlantUML – High Level Architecture
+
+![Architecture Diagram](./docs/images/high_level_architecture.png)
+
+## PlantUML – Request Flow
+
+![Requst Flow](./docs/images/request_flow.png)
+
+
+
+## Running Containers
+
+![Running Conainers](./docs/images/dockerps.png)
+
+
+
+## Valid HTTPS Certificate
+
+![Valid HTTPS Certificate](./docs/images/tls-certificate.png)
+
+---
+
+# Technology Choices
+
+Traefik was selected instead of Nginx because it integrates directly with Docker and can automatically discover containers through labels. It also includes built-in ACME support, removing the need for a separate Certbot installation.
+
+PostgreSQL was chosen as the database because the assignment requires a dedicated SQL or in-memory database running in a separate container. Persistent volumes are used to ensure that application and database data survive container recreation.
+
+DuckDNS provides public DNS records for the Google Cloud VM, while Let's Encrypt issues trusted TLS certificates. Uptime Kuma was included as an example of an existing third-party containerized application and provides basic monitoring capabilities.
+
+---
+
+# Container Overview
+
+| Container     | Purpose                           |
+| ------------- | --------------------------------- |
+| pd-traefik    | Reverse proxy and TLS termination |
+| pd-chat       | Node.js chat application          |
+| pd-postgres   | PostgreSQL database               |
+| pd-kuma       | Monitoring service                |
+| pd-watchtower | Automatic container updates       |
+
+---
+
+# Persistent Storage
+
+Docker volumes are used to persist data independently of the containers.
+
+| Volume           | Purpose          |
+| ---------------- | ---------------- |
+| pd-chat-data     | Application data |
+| pd-postgres-data | PostgreSQL data  |
+| pd-kuma-data     | Uptime Kuma data |
+
+---
+
+# Environment Variables
+
+Configuration is externalized using a `.env` file.
+
+Example:
+
+```env
+CHAT_DOMAIN=infra3proj.duckdns.org
+KUMA_DOMAIN=infra3proj-kuma.duckdns.org
+
+EMAIL=example@example.com
+
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=chatdb
+DB_USER=chatuser
+DB_PASSWORD=secret
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/kdg-ti/infrastructure-3/2025-26/acs201/peter-duga.git
-git branch -M main
-git push -uf origin main
+
+This approach allows the same container images to be used in different environments without modification.
+
+---
+
+# Local Deployment
+
+Clone the repository and enter the project directory.
+
+```bash
+git clone git@gitlab.com:kdg-ti/infrastructure-3/2025-26/acs201/peter-duga.git
+cd infra-chat
 ```
 
-## Integrate with your tools
+Start the stack:
 
-* [Set up project integrations](https://gitlab.com/kdg-ti/infrastructure-3/2025-26/acs201/peter-duga/-/settings/integrations)
+```bash
+docker compose up -d --build
+```
 
-## Collaborate with your team
+Verify that all services are running:
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+```bash
+docker compose ps
+```
 
-## Test and Deploy
+The chat application becomes available through Traefik and can also be reached directly on the container network.
 
-Use the built-in continuous integration in GitLab.
+To stop the environment:
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+```bash
+docker compose down
+```
 
-***
+---
 
-# Editing this README
+# Google Cloud Deployment
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+The repository contains a set of automation scripts used to provision, configure, deploy, and manage the application on Google Cloud Platform.
 
-## Suggestions for a good README
+| Script              | Purpose                                                      |
+| ------------------- | ------------------------------------------------------------ |
+| `create-vm.sh`      | Creates the Google Cloud virtual machine.                    |
+| `setup-vm.sh`       | Installs Docker, Docker Compose, and all required dependencies on the VM. |
+| `deploy.sh`         | Main deployment script that orchestrates the complete deployment process. |
+| `deploy-git.sh`     | Deploys the application by cloning or updating the Git repository on the VM. |
+| `deploy-scp.sh`     | Deploys the application by copying the local project files to the VM using SCP. |
+| `update-duckdns.sh` | Updates the DuckDNS records with the current VM public IP address. |
+| `wait-for-dns.sh`   | Waits until the DNS records have propagated correctly.       |
+| `ssh-vm.sh`         | Opens an SSH connection to the VM.                           |
+| `get-vm-ip.sh`      | Retrieves the public IP address of the VM.                   |
+| `delete-vm.sh`      | Removes the virtual machine and associated resources.        |
+| `reset-duckdns.sh`  | Resets the configured DuckDNS records if required.           |
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Deployment is performed from the root directory of the project using the main deployment script. The deployment method must be specified as either `git` or `scp` with `scp` being set as default.
 
-## Name
-Choose a self-explaining name for your project.
+Deploy using Git:
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+```bash
+./scripts/deploy.sh git
+```
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Deploy using SCP:
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+```bash
+./scripts/deploy.sh scp
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+The `git` option deploys the application by cloning or updating the Git repository directly on the virtual machine. The `scp` option deploys the current local project state by securely copying the project files to the VM before starting the containers.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+The deployment script automatically creates or updates the application on the VM, updates DNS records, waits for DNS propagation, and starts the production environment.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+To connect to the VM manually:
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+```bash
+./scripts/ssh-vm.sh
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+To retrieve the VM public IP address:
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+```bash
+./scripts/get-vm-ip.sh
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+To remove the deployment and delete the VM:
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```bash
+./scripts/delete-vm.sh
+```
 
-## License
-For open source projects, say how it is licensed.
+---
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+# TLS and Certificates
+
+HTTPS is terminated by Traefik. Certificates are automatically requested from Let's Encrypt using the ACME protocol and stored inside the `letsencrypt/acme.json` file.
+
+The production deployment exposes ports 80 and 443. Incoming HTTP requests are used for ACME validation, while HTTPS provides encrypted communication for users.
+
+The HTTPS certificate may take some time to be issued due to the necessity of DNS records propagation. If the DNS records are not propagated yet the certificate cannot be issued until the propagation is complete. Traefik will issue a default certificate in the meanwhile and keep retrying to get the certificate from Let's Encrypt until it succeeds.
+
+---
+
+# Monitoring
+
+Uptime Kuma is deployed as a separate container and exposed through Traefik. It can be used to monitor service availability and validate that the chat application remains operational after deployment.
+
+---
+
+# Verification
+
+After deployment, the following checks can be used to verify correct operation:
+
+```bash
+docker compose ps
+```
+
+```bash
+docker logs pd-traefik
+```
+
+```bash
+docker logs pd-chat
+```
+
+```bash
+dig infra3proj.duckdns.org
+```
+
+```bash
+curl https://infra3proj.duckdns.org
+```
+
+A successful deployment should provide:
+
+- Running containers
+- Valid TLS certificates issued by Let's Encrypt
+- Accessible chat application
+- Reachable monitoring dashboard
+- Persistent PostgreSQL storage
+
+---
+
+# Assignment Requirements Mapping
+
+| Requirement | Implementation |
+|------------|------------|
+| Docker Compose orchestration | docker-compose.yml and docker-compose.prod.yml |
+| SQL database in separate container | PostgreSQL (`pd-postgres`) |
+| Reverse proxy in separate container | Traefik (`pd-traefik`) |
+| Existing third-party application | Uptime Kuma (`pd-kuma`) |
+| HTTPS with valid certificate | Let's Encrypt via Traefik ACME |
+| Routing to multiple services | Chat and Uptime Kuma |
+| Persistent storage | Docker volumes |
+| Environment variables | `.env` configuration |
+| Local deployment | Docker Compose |
+| Cloud deployment | Google Cloud VM |
+
+---
+
+# Conclusion
+
+The project demonstrates container orchestration using Docker Compose, automated cloud deployment on Google Cloud, reverse proxying with Traefik, automatic TLS certificate management through Let's Encrypt, persistent PostgreSQL storage, monitoring with Uptime Kuma, and infrastructure automation through deployment scripts. The solution can be executed both locally and in a cloud environment while maintaining the same architecture and configuration approach.
