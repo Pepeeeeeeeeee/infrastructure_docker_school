@@ -1,0 +1,128 @@
+services:
+
+  traefik:
+    image: traefik:v3
+
+    container_name: pd-traefik
+
+    restart: unless-stopped
+
+    command:
+
+      
+      - "--api.insecure=true"
+
+      - "--api.dashboard=true"
+
+      - "--providers.docker=true"
+
+      - "--providers.docker.exposedbydefault=false"
+
+      - "--entrypoints.web.address=:80"
+
+      - "--log.level=INFO"
+
+      - "--accesslog=true"
+
+      - "--accesslog.filePath=/logs/access.log"
+
+    ports:
+      - "80:80"
+      - "8080:8080"
+
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./logs:/logs"
+
+    labels:
+      - "traefik.enable=true"
+
+  chat:
+    build: ./app
+
+    container_name: pd-chat
+
+    restart: unless-stopped
+
+    depends_on:
+      - postgres
+
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+
+    volumes:
+      - pd-chat-data:/data
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    labels:
+
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.chat.rule=Host(`${CHAT_DOMAIN}`)"
+
+      - "traefik.http.routers.chat.entrypoints=web"
+
+      - "traefik.http.services.chat.loadbalancer.server.port=3000"
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+
+    container_name: pd-kuma
+
+    restart: unless-stopped
+
+    volumes:
+      - pd-kuma-data:/app/data
+
+    labels:
+
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.kuma.rule=Host(`${KUMA_DOMAIN}`)"
+
+      - "traefik.http.routers.kuma.entrypoints=web"
+
+      - "traefik.http.services.kuma.loadbalancer.server.port=3001"
+
+  postgres:
+    image: postgres:17
+
+    container_name: pd-postgres
+
+    restart: unless-stopped
+
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+
+    volumes:
+      - pd-postgres-data:/var/lib/postgresql/data
+
+  watchtower:
+    image: containrrr/watchtower
+
+    container_name: pd-watchtower
+
+    restart: unless-stopped
+
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+    command:
+      - --interval
+      - "300"
+
+volumes:
+  pd-postgres-data:
+  pd-chat-data:
+  pd-kuma-data:
