@@ -120,22 +120,8 @@ Docker volumes are used to persist data independently of the containers.
 
 # Environment Variables
 
-Configuration is externalized using a `.env` file.
-
-Example:
-
-```env
-CHAT_DOMAIN=infra3proj.duckdns.org
-KUMA_DOMAIN=infra3proj-kuma.duckdns.org
-
-EMAIL=example@example.com
-
-DB_HOST=postgres
-DB_PORT=5432
-DB_NAME=chatdb
-DB_USER=chatuser
-DB_PASSWORD=secret
-```
+Configuration is externalized using a `.env` file — copy `.env.example` to `.env` and fill in
+real values; `.env` itself is gitignored and never committed.
 
 This approach allows the same container images to be used in different environments without modification.
 
